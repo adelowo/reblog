@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"github.com/stretchr/testify/assert"
 )
 
 var _ models.DataStore = &mocks.DataStore{}
@@ -52,6 +53,11 @@ func testInvalidPostBody(h *Handler, t *testing.T) {
 	} else {
 		t.Log("Test passed :")
 	}
+
+	expected := string(`{"status":false,"message":"Authentication failed","errors":{"username":"","email":"Please provide a valid email address","password":"Please provide a password"}}`)
+
+	assert.JSONEq(t, expected, rr.Body.String(), "They didn't match")
+
 }
 
 func testDataFailsValidation(h *Handler, t *testing.T) {
@@ -74,6 +80,10 @@ func testDataFailsValidation(h *Handler, t *testing.T) {
 	} else {
 		t.Log("Status code check passed")
 	}
+
+	expected := string(`{"status":false,"message":"Authentication failed","errors":{"username":"","email":"Please provide a valid email address","password":""}}`)
+
+	assert.JSONEq(t, expected, rr.Body.String(), "Received invalid JSON structure")
 }
 
 func testInvalidUser(h *Handler, t *testing.T) {
@@ -95,6 +105,10 @@ func testInvalidUser(h *Handler, t *testing.T) {
 	} else {
 		t.Log("Passing")
 	}
+
+	expected := string(`{"status":false,"message":"Authentication failed","errors":{"username":"","email":"Invalid username/password","password":""}}`)
+
+	assert.JSONEq(t, expected, rr.Body.String(), "JSON structure didn't match")
 }
 
 func testSuccess(t *testing.T) {
