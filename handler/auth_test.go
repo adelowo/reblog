@@ -7,10 +7,10 @@ import (
 	"github.com/adelowo/reblog/models"
 	"github.com/adelowo/reblog/models/mocks"
 	"github.com/adelowo/reblog/utils"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"github.com/stretchr/testify/assert"
 )
 
 var _ models.DataStore = &mocks.DataStore{}
