@@ -120,16 +120,3 @@ func PostLogin(h *Handler) func(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, &authError{false, "Authentication failed", errorMessages{Email: "Invalid email/password"}})
 	}
 }
-
-//Writers who are collaborators can sign up through this link
-func PostSignUp(h *Handler) func(w http.ResponseWriter, r *http.Request) {
-	type signUpData struct {
-		Moniker  string
-		Email    string
-		Password string
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-
-	}
-}
