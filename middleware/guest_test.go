@@ -1,18 +1,18 @@
 package middleware
 
 import (
-	"testing"
+	"bytes"
+	"github.com/adelowo/reblog/handler"
+	"github.com/adelowo/reblog/models/mocks"
+	"github.com/adelowo/reblog/utils"
 	"net/http"
 	"net/http/httptest"
-	"github.com/adelowo/reblog/handler"
-	"github.com/adelowo/reblog/utils"
-	"github.com/adelowo/reblog/models/mocks"
-	"bytes"
+	"testing"
 )
 
 func TestGuest(t *testing.T) {
 	db := &mocks.DataStore{}
-	h := &handler.Handler{DB : db, JWT : utils.NewJWTGenerator()}
+	h := &handler.Handler{DB: db, JWT: utils.NewJWTGenerator()}
 
 	req, err := http.NewRequest("POST", "/login", nil)
 	req.Header.Add("Authorization", "Bearer abc123")
