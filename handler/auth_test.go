@@ -1,15 +1,15 @@
 package handler
 
 import (
-	"testing"
+	"bytes"
+	"errors"
+	"fmt"
 	"github.com/adelowo/reblog/models"
 	"github.com/adelowo/reblog/models/mocks"
 	"github.com/adelowo/reblog/utils"
 	"net/http"
 	"net/http/httptest"
-	"bytes"
-	"errors"
-	"fmt"
+	"testing"
 )
 
 var _ models.DataStore = &mocks.DataStore{}
@@ -18,17 +18,15 @@ func TestPostLogin(t *testing.T) {
 
 	db := new(mocks.DataStore)
 
-	db.On("FindByEmail","adelowo@me.com").
-		Return(models.User{},errors.New("User does not exists"))
+	db.On("FindByEmail", "adelowo@me.com").
+		Return(models.User{}, errors.New("User does not exists"))
 
-
-	h := &Handler{DB : db, JWT : utils.NewJWTGenerator()}
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
 
 	testInvalidPostBody(h, t)
 	testDataFailsValidation(h, t)
 	testInvalidUser(h, t)
 	testSuccess(t)
-
 
 	db.AssertExpectations(t)
 }
@@ -99,15 +97,13 @@ func testInvalidUser(h *Handler, t *testing.T) {
 	}
 }
 
-
 func testSuccess(t *testing.T) {
 	db := new(mocks.DataStore)
 
-	db.On("FindByEmail","adelowo@me.com").
-		Return(models.User{ID:1, Password:"$2a$12$Xc6ArM465UaZVW/bbZorSec/dgkSApoC0Ac7Zfi6MajZlSnerqMAW", Moniker:"adelowo", Type: 0}, nil)
+	db.On("FindByEmail", "adelowo@me.com").
+		Return(models.User{ID: 1, Password: "$2a$12$Xc6ArM465UaZVW/bbZorSec/dgkSApoC0Ac7Zfi6MajZlSnerqMAW", Moniker: "adelowo", Type: 0}, nil)
 
-
-	h := &Handler{DB : db, JWT : utils.NewJWTGenerator()}
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
 
 	data := []byte(`{"email" : "adelowo@me.com", "password" : "badpassword"}`)
 
@@ -128,4 +124,6 @@ func testSuccess(t *testing.T) {
 	} else {
 		t.Log("Passing")
 	}
+
+	db.AssertExpectations(t)
 }
