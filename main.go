@@ -50,7 +50,7 @@ func main() {
 
 				roo.Use(m.Admin)
 
-				roo.Post("/create", handler.PostSignUp(h))
+				roo.Post("/create", handler.CreateCollaborator(h))
 			})
 		})
 

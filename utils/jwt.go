@@ -42,5 +42,5 @@ func (j *JWTTokenGenerator) Generate() (string, error) {
 }
 
 func timeFrame() time.Duration {
-	return time.Second * 60 * 10
+	return time.Second * 60 * 5
 }
