@@ -201,5 +201,15 @@ func (db *DB) FindCollaboratorByToken(token string) (Collaborator, error) {
 }
 
 func (db *DB) DeleteCollaborator(c Collaborator) error {
-	return nil
+	stmt, err := db.Preparex("DELETE FROM collaborator_tokens WHERE email=?")
+
+	if err != nil {
+		return errors.Wrap(err, "Could not prepare statement")
+	}
+
+	if x, _ := stmt.MustExec(c.Email).RowsAffected(); x == 1 {
+		return nil
+	}
+
+	return errors.New("An error occured while we tried deleting the collaborator")
 }
