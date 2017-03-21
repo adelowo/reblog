@@ -1,8 +1,10 @@
 package models
 
 import (
+	"github.com/adelowo/gotils/hasher"
 	"github.com/adelowo/reblog/utils"
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -12,6 +14,8 @@ type UserStore interface {
 	FindByMoniker(moniker string) (User, error)
 	CreateUser(u *User) error
 	CreateCollaborator(email string) error
+	FindCollaboratorByToken(token string) (Collaborator, error)
+	DeleteCollaborator(Collaborator) error
 }
 
 type User struct {
@@ -27,10 +31,10 @@ type User struct {
 }
 
 type Collaborator struct {
-	ID        int    `db:"id"`
-	Token     string `db:"token"`
-	Email     string `db:"email"`
-	CreatedAt string `db:"created_at"`
+	ID        int       `db:"id"`
+	Token     string    `db:"token"`
+	Email     string    `db:"email"`
+	CreatedAt time.Time `db:"created_at"`
 }
 
 func (db *DB) FindByEmail(email string) (User, error) {
@@ -103,7 +107,28 @@ func (db *DB) DoesUserExist(email, moniker string) bool {
 
 func (db *DB) CreateUser(u *User) error {
 
-	return nil
+	hashed, err := hasher.NewBcryptHasher(bcrypt.DefaultCost).Hash(u.Password)
+
+	if err != nil {
+		return nil
+	}
+
+	now := time.Now().UTC()
+
+	stmt, err := db.Preparex("INSERT INTO users(moniker,full_name,password,email,created_at,updated_at) VALUES(?,?,?,?,?,?)")
+
+	if err != nil {
+		return errors.Wrap(err, "Could not prepare the insert statement")
+	}
+
+	count, err := stmt.MustExec(u.Moniker, u.Name, hashed, u.Email, now, now).
+		RowsAffected()
+
+	if err == nil && count == 1 {
+		return nil
+	}
+
+	return errors.Wrap(err, "Could not create user")
 }
 
 func (db *DB) CreateCollaborator(email string) error {
@@ -124,7 +149,7 @@ func (db *DB) CreateCollaborator(email string) error {
 
 	err = stmt.QueryRowx(email).StructScan(&u)
 
-	createdAt := time.Now().String()
+	createdAt := time.Now()
 
 	if err != nil {
 		//The user does not exist, we can add the collaborator
@@ -153,4 +178,28 @@ func (db *DB) CreateCollaborator(email string) error {
 
 	return errors.Wrap(err, "An error occured while trying to update the collaborator's row")
 
+}
+
+func (db *DB) FindCollaboratorByToken(token string) (Collaborator, error) {
+
+	var c Collaborator
+
+	stmt, err := db.Preparex("SELECT * FROM collaborator_tokens WHERE token=?")
+
+	if err != nil {
+		return Collaborator{}, errors.Wrap(err, "Failed to prepare statement")
+	}
+
+	err = stmt.QueryRowx(token).
+		StructScan(&c)
+
+	if err != nil {
+		return Collaborator{}, errors.Wrap(err, "Collaborator not found")
+	}
+
+	return c, nil
+}
+
+func (db *DB) DeleteCollaborator(c Collaborator) error {
+	return nil
 }

@@ -6,10 +6,12 @@ import (
 	"github.com/adelowo/reblog/models"
 	"github.com/adelowo/reblog/models/mocks"
 	"github.com/adelowo/reblog/utils"
+	"github.com/pressly/chi"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestInvalidEmailAddress(t *testing.T) {
@@ -102,5 +104,212 @@ func TestAnErrorOccurredWhileAddingACollaborator(t *testing.T) {
 	expected := string(`{"status":false,"message":"An error occured while we tried adding a new collaborator","data":{"email":""}}`)
 
 	assert.JSONEq(t, expected, rr.Body.String(), "The response body differs")
+
+}
+
+//Tests for the signup process here
+
+func TestAnInvalidTokenCannotBeUsedToSignUpAsAWriter(t *testing.T) {
+	data := []byte(`{"name" : "Lanre Adelowo", "moniker" : "hades", "password" : "yetanotherbadpassword"}`)
+
+	db := new(mocks.DataStore)
+
+	token := "invalidtokenhere"
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	req, err := http.NewRequest("POST", "/signup/"+token, bytes.NewBuffer(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	r := chi.NewRouter()
+
+	db.On("FindCollaboratorByToken", token).
+		Return(models.Collaborator{}, errors.New("Collaborator not found"))
+
+	r.Post("/signup/:token", PostSignUp(h))
+
+	r.ServeHTTP(rr, req)
+
+	//http.HandlerFunc(PostSignUp(h)).
+	//	ServeHTTP(rr,req)
+
+	if status := rr.Code; status != http.StatusNotFound {
+		t.Fatal(status)
+	}
+
+	expectedText := "Not Found\n"
+
+	assert.Equal(t, expectedText, rr.Body.String())
+}
+
+func TestAnExpiredTokenCannotBeUsedToSignUpAsAUser(t *testing.T) {
+
+	data := []byte(`{"name" : "Lanre Adelowo", "moniker" : "hades", "password" : "yetanotherbadpassword"}`)
+
+	db := new(mocks.DataStore)
+
+	token := "expiredtoken"
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	req, err := http.NewRequest("POST", "/signup/"+token, bytes.NewBuffer(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	r := chi.NewRouter()
+
+	db.On("FindCollaboratorByToken", token).
+		Return(models.Collaborator{2, token, "me@lanre.com", time.Now().Add(-21 * time.Minute)}, nil)
+
+	r.Post("/signup/:token", PostSignUp(h))
+
+	r.ServeHTTP(rr, req)
+
+	//http.HandlerFunc(PostSignUp(h)).
+	//	ServeHTTP(rr,req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Fatal(status)
+	}
+
+	expectedText := string(`{"status" : false, "message" : "Token is expired, Please contact the admin to resend a new token", "errors":{"moniker":"", "full_name":"", "password":""}}`)
+
+	assert.JSONEq(t, expectedText, rr.Body.String())
+
+}
+
+func TestCannotSignUserUpWithInvalidData(t *testing.T) {
+
+	data := []byte(`{"name" : "Lan", "moniker" : "ha", "password" : "y"}`)
+
+	db := new(mocks.DataStore)
+
+	token := "token"
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	req, err := http.NewRequest("POST", "/signup/"+token, bytes.NewBuffer(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	r := chi.NewRouter()
+
+	db.On("FindCollaboratorByToken", token).
+		Return(models.Collaborator{2, token, "me@lanre.com", time.Now().Add(15 * time.Minute)}, nil)
+
+	r.Post("/signup/:token", PostSignUp(h))
+
+	r.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Fatal(status)
+	}
+
+	expectedText := string(`{"status" : false, "message" : "Validation failed", "errors":{"moniker":"Your moniker should not be lesser than 4 characters", "full_name":"Your name should not be lesser than 6 characters. E.g Lanre Adelowo", "password":"Your password should have a length greater than 10"}}`)
+
+	assert.JSONEq(t, expectedText, rr.Body.String())
+
+}
+
+func TestCollaboratorIsSuccessfullyCreated(t *testing.T) {
+
+	data := []byte(`{"name" : "Lanre Adelowo", "moniker" : "hades", "password" : "yetanotherbadpassword"}`)
+
+	db := new(mocks.DataStore)
+
+	token := "token"
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	req, err := http.NewRequest("POST", "/signup/"+token, bytes.NewBuffer(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	r := chi.NewRouter()
+
+	c := models.Collaborator{2, token, "me@lanre.com", time.Now().Add(15 * time.Minute)}
+
+	db.On("DeleteCollaborator", c).
+		Return(nil)
+
+	db.On("FindCollaboratorByToken", token).
+		Return(c, nil)
+
+	db.On("CreateUser", &models.User{Moniker: "hades", Email: c.Email, Name: "Lanre Adelowo", Password: "yetanotherbadpassword"}).
+		Return(nil)
+
+	r.Post("/signup/:token", PostSignUp(h))
+
+	r.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Fatal(status)
+	}
+
+	expectedText := string(`{"status" : true, "message" : "You have been added as a contributor to Reblog. Please login in other to get started", "errors":{"moniker":"", "full_name":"", "password":""}}`)
+
+	assert.JSONEq(t, expectedText, rr.Body.String())
+
+}
+
+func TestAnUnknownErrorOccurredWhileCollaboratorTriedSigningUp(t *testing.T) {
+
+	data := []byte(`{"name" : "Lanre Adelowo", "moniker" : "hades", "password" : "yetanotherbadpassword"}`)
+
+	db := new(mocks.DataStore)
+
+	token := "token"
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	req, err := http.NewRequest("POST", "/signup/"+token, bytes.NewBuffer(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	r := chi.NewRouter()
+
+	c := models.Collaborator{2, token, "me@lanre.com", time.Now().Add(15 * time.Minute)}
+
+	db.On("DeleteCollaborator", c).
+		Return(nil)
+
+	db.On("FindCollaboratorByToken", token).
+		Return(c, nil)
+
+	db.On("CreateUser", &models.User{Moniker: "hades", Email: c.Email, Name: "Lanre Adelowo", Password: "yetanotherbadpassword"}).
+		Return(errors.New("An error occured"))
+
+	r.Post("/signup/:token", PostSignUp(h))
+
+	r.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Fatal(status)
+	}
+
+	expectedText := string(`{"status" : false, "message" : "An error occured while we tried adding you as a collaborator to Reblog. Please try again", "errors":{"moniker":"", "full_name":"", "password":""}}`)
+
+	assert.JSONEq(t, expectedText, rr.Body.String())
 
 }

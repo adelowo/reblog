@@ -8,6 +8,48 @@ type DataStore struct {
 	mock.Mock
 }
 
+// CreateCollaborator provides a mock function with given fields: email
+func (_m *DataStore) CreateCollaborator(email string) error {
+	ret := _m.Called(email)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(email)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// CreateUser provides a mock function with given fields: u
+func (_m *DataStore) CreateUser(u *models.User) error {
+	ret := _m.Called(u)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*models.User) error); ok {
+		r0 = rf(u)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteCollaborator provides a mock function with given fields: _a0
+func (_m *DataStore) DeleteCollaborator(_a0 models.Collaborator) error {
+	ret := _m.Called(_a0)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(models.Collaborator) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // DoesUserExist provides a mock function with given fields: email, moniker
 func (_m *DataStore) DoesUserExist(email string, moniker string) bool {
 	ret := _m.Called(email, moniker)
@@ -57,6 +99,27 @@ func (_m *DataStore) FindByMoniker(moniker string) (models.User, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(moniker)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindCollaboratorByToken provides a mock function with given fields: token
+func (_m *DataStore) FindCollaboratorByToken(token string) (models.Collaborator, error) {
+	ret := _m.Called(token)
+
+	var r0 models.Collaborator
+	if rf, ok := ret.Get(0).(func(string) models.Collaborator); ok {
+		r0 = rf(token)
+	} else {
+		r0 = ret.Get(0).(models.Collaborator)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(token)
 	} else {
 		r1 = ret.Error(1)
 	}
