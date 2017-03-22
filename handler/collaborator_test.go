@@ -313,3 +313,69 @@ func TestAnUnknownErrorOccurredWhileCollaboratorTriedSigningUp(t *testing.T) {
 	assert.JSONEq(t, expectedText, rr.Body.String())
 
 }
+
+func TestCanDeleteACollaborator(t *testing.T) {
+
+	data := []byte(`{"email" : "assholeuser@app.live"}`)
+
+	db := new(mocks.DataStore)
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	u := models.User{Moniker: "asshole", Type: 0, Email: "assholeuser@app.live"}
+
+	db.On("FindByEmail", "assholeuser@app.live").Return(u, nil)
+
+	db.On("DeleteUser", u).Return(nil)
+
+	req, err := http.NewRequest("POST", "/reblog/collaborator/delete", bytes.NewBuffer(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	http.HandlerFunc(DeleteCollaborator(h)).
+		ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Fatal(status)
+	}
+
+	expected := string(`{"status":true,"message":"User was successfully deleted"}`)
+
+	assert.JSONEq(t, expected, rr.Body.String(), "The response body differs")
+
+}
+
+func TestCannotDeleteANonExistentUser(t *testing.T) {
+
+	data := []byte(`{"email" : "unknownuser@app.live"}`)
+
+	db := new(mocks.DataStore)
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	db.On("FindByEmail", "unknownuser@app.live").Return(models.User{}, errors.New("User doesn't exist"))
+
+	req, err := http.NewRequest("POST", "/reblog/collaborator/delete", bytes.NewBuffer(data))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	http.HandlerFunc(DeleteCollaborator(h)).
+		ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Fatal(status)
+	}
+
+	expected := string(`{"status":false,"message":"Could not delete non-existent user"}`)
+
+	assert.JSONEq(t, expected, rr.Body.String(), "The response body differs")
+
+}

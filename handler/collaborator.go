@@ -2,13 +2,12 @@ package handler
 
 import (
 	"encoding/json"
-	"github.com/pressly/chi/render"
-	"net/http"
-	//	"github.com/adelowo/reblog/models"
 	"github.com/adelowo/gotils/bag"
 	"github.com/adelowo/reblog/models"
 	"github.com/adelowo/reblog/utils"
 	"github.com/pressly/chi"
+	"github.com/pressly/chi/render"
+	"net/http"
 	"time"
 )
 
@@ -76,6 +75,44 @@ func CreateCollaborator(h *Handler) func(w http.ResponseWriter, r *http.Request)
 		render.JSON(w, r, &res{false, "An error occured while we tried adding a new collaborator", struct {
 			Email string `json:"email"`
 		}{""}})
+	}
+}
+
+func DeleteCollaborator(h *Handler) func(w http.ResponseWriter, r *http.Request) {
+	type d struct {
+		Email string `json:"email"`
+	}
+
+	type res struct {
+		Status  bool   `json:"status"`
+		Message string `json:"message"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		var data d
+
+		decoder := json.NewDecoder(r.Body)
+
+		if err := decoder.Decode(&data); err != nil {
+
+			w.WriteHeader(http.StatusBadRequest)
+
+			render.JSON(w, r, &res{false, "An error occured while we tried deleting the collaborator"})
+			return
+		}
+
+		if user, err := h.DB.FindByEmail(data.Email); err == nil {
+			defer h.DB.DeleteUser(user)
+
+			w.WriteHeader(http.StatusOK)
+			render.JSON(w, r, &res{true, "User was successfully deleted"})
+
+			return
+		}
+
+		w.WriteHeader(http.StatusBadRequest)
+		render.JSON(w, r, &res{false, "Could not delete non-existent user"})
+
 	}
 }
 
