@@ -10,12 +10,13 @@ import (
 
 type UserStore interface {
 	FindByEmail(email string) (User, error)
+	DeleteUser(u User) error
 	DoesUserExist(email, moniker string) bool
 	FindByMoniker(moniker string) (User, error)
 	CreateUser(u *User) error
 	CreateCollaborator(email string) error
 	FindCollaboratorByToken(token string) (Collaborator, error)
-	DeleteCollaborator(Collaborator) error
+	DeleteCollaborator(c Collaborator) error
 }
 
 type User struct {
@@ -212,4 +213,20 @@ func (db *DB) DeleteCollaborator(c Collaborator) error {
 	}
 
 	return errors.New("An error occured while we tried deleting the collaborator")
+}
+
+func (db *DB) DeleteUser(u User) error {
+
+	stmt, err := db.Preparex("DELETE FROM user WHERE email=?")
+
+	if err != nil {
+		return errors.Wrap(err, "Could not prepare statement")
+	}
+
+	if x, _ := stmt.MustExec(u.Email).RowsAffected(); x == 1 {
+		return nil
+	}
+
+	return errors.New("An error occured while we tried deleting the collaborator")
+
 }

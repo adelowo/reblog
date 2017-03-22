@@ -36,13 +36,27 @@ func (_m *DataStore) CreateUser(u *models.User) error {
 	return r0
 }
 
-// DeleteCollaborator provides a mock function with given fields: _a0
-func (_m *DataStore) DeleteCollaborator(_a0 models.Collaborator) error {
-	ret := _m.Called(_a0)
+// DeleteCollaborator provides a mock function with given fields: c
+func (_m *DataStore) DeleteCollaborator(c models.Collaborator) error {
+	ret := _m.Called(c)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(models.Collaborator) error); ok {
-		r0 = rf(_a0)
+		r0 = rf(c)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeleteUser provides a mock function with given fields: u
+func (_m *DataStore) DeleteUser(u models.User) error {
+	ret := _m.Called(u)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(models.User) error); ok {
+		r0 = rf(u)
 	} else {
 		r0 = ret.Error(0)
 	}
