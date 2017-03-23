@@ -6,6 +6,7 @@ import (
 )
 
 type Handler struct {
-	DB  models.DataStore
-	JWT *utils.JWTTokenGenerator
+	DB   models.DataStore
+	JWT  *utils.JWTTokenGenerator
+	Slug utils.Slug
 }

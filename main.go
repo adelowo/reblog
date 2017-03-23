@@ -21,7 +21,7 @@ func main() {
 
 	jwtGenerator := utils.NewJWTGenerator()
 
-	h := &handler.Handler{DB: db, JWT: jwtGenerator}
+	h := &handler.Handler{DB: db, JWT: jwtGenerator, Slug: &utils.Slug{}}
 
 	router := chi.NewRouter()
 
@@ -51,6 +51,13 @@ func main() {
 				roo.Use(m.Admin)
 
 				roo.Post("/create", handler.CreateCollaborator(h))
+				roo.Post("/delete", handler.DeleteCollaborator(h))
+			})
+
+			ro.Route("posts", func(roo chi.Router) {
+
+				roo.Post("/create", handler.CreatePost(h))
+
 			})
 		})
 
