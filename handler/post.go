@@ -7,8 +7,10 @@ import (
 	"github.com/adelowo/reblog/middleware"
 	"github.com/adelowo/reblog/models"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/pressly/chi"
 	"github.com/pressly/chi/render"
 	"net/http"
+	"strconv"
 )
 
 const (
@@ -103,6 +105,72 @@ func CreatePost(h *Handler) func(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusInternalServerError)
 		render.JSON(w, r, &res{false, "An error occurred while trying to create the post", errorMessages{}})
+	}
+}
+
+func DeletePost(h *Handler) func(w http.ResponseWriter, r *http.Request) {
+
+	type res struct {
+		Status  bool   `json:"status"`
+		Message string `json:"message"`
+		Errors  struct {
+			PostID string `json:"post_id"`
+		} `json:"errors"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			render.JSON(w, r, &res{false, "Invalid request", struct {
+				PostID string `json:"post_id"`
+			}{"Invalid post id"}})
+			return
+		}
+
+		//Make sure only the admin can delete a post
+
+		userType, err := getUserType(r)
+
+		if err != nil {
+			//This shouldn't happen but...
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		if userType == middleware.COLLABORATOR {
+			w.WriteHeader(http.StatusUnauthorized)
+			render.JSON(w, r, &res{false, "You don't have the authority to perform this action",
+				struct {
+					PostID string `json:"post_id"`
+				}{}})
+			return
+		}
+
+		p, err := h.DB.FindPostByID(id)
+
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			render.JSON(w, r, &res{false, "Post does not exist", struct {
+				PostID string `json:"post_id"`
+			}{"Post with the specified id could not be found"}})
+			return
+		}
+
+		if err = h.DB.DeletePost(p); err == nil {
+			w.WriteHeader(http.StatusOK)
+			render.JSON(w, r, &res{true, "Post was deleted", struct {
+				PostID string `json:"post_id"`
+			}{""}})
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		render.JSON(w, r, &res{false, "An error occurred while trying to delete post", struct {
+			PostID string `json:"post_id"`
+		}{}})
 	}
 }
 

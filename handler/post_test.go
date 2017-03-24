@@ -7,6 +7,7 @@ import (
 	"github.com/adelowo/reblog/models/mocks"
 	"github.com/adelowo/reblog/utils"
 	"github.com/pkg/errors"
+	"github.com/pressly/chi"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 	"net/http"
@@ -258,4 +259,208 @@ func TestAnErrorOccurredWhileTryingToCreateAPost(t *testing.T) {
 	expectedText := string(`{"status" : false, "message" : "An error occurred while trying to create the post", "errors":{"title":"", "content":""}}`)
 
 	assert.JSONEq(t, expectedText, rr.Body.String())
+}
+
+func TestAnInvalidRequestCannotBeUsedToDeleteAPost(t *testing.T) {
+
+	db := new(mocks.DataStore)
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	req, err := http.NewRequest("DELETE", "/reblog/posts/eighty", nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	r := chi.NewRouter()
+
+	r.Delete("/reblog/posts/:id", DeletePost(h))
+
+	r.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusBadRequest {
+		t.Fatalf("Expected %d. Got %d", http.StatusBadRequest, status)
+	}
+
+	expectedText := string(`{"status" : false, "message" : "Invalid request", "errors": {"post_id" : "Invalid post id"}}`)
+
+	assert.JSONEq(t, expectedText, rr.Body.String(), "THe response body differs")
+}
+
+func TestACollaboratorCannotDeleteAPost(t *testing.T) {
+
+	db := new(mocks.DataStore)
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	req, err := http.NewRequest("DELETE", "/reblog/posts/10", nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	claims := make(map[string]interface{}, 4)
+
+	claims["userID"] = 15
+	claims["moniker"] = "horus"
+	claims["type"] = middleware.COLLABORATOR
+
+	h.JWT.Claims(claims)
+
+	token, err := h.JWT.Generate()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	to, err := h.JWT.Decode(token)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := req.Context()
+
+	ctx = context.WithValue(ctx, "jwt", to)
+
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+
+	r := chi.NewRouter()
+
+	r.Delete("/reblog/posts/:id", DeletePost(h))
+
+	r.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusUnauthorized {
+		t.Fatalf("Expected %d. Got %d", http.StatusUnauthorized, status)
+	}
+
+	expected := string(`{"status" : false, "message" : "You don't have the authority to perform this action", "errors" : {"post_id" : ""}}`)
+
+	assert.JSONEq(t, expected, rr.Body.String())
+}
+
+func TestAnAdminCanDeleteAPost(t *testing.T) {
+
+	db := new(mocks.DataStore)
+
+	p := models.Post{ID: 10, Status: PUBLISHED, Title: "Testing is key"}
+
+	db.On("FindPostByID", 10).Once().Return(p, nil)
+
+	db.On("DeletePost", p).Once().Return(nil)
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	req, err := http.NewRequest("DELETE", "/reblog/posts/10", nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	claims := make(map[string]interface{}, 4)
+
+	claims["userID"] = 15
+	claims["moniker"] = "horus"
+	claims["type"] = middleware.ADMIN
+
+	h.JWT.Claims(claims)
+
+	token, err := h.JWT.Generate()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	to, err := h.JWT.Decode(token)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := req.Context()
+
+	ctx = context.WithValue(ctx, "jwt", to)
+
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+
+	r := chi.NewRouter()
+
+	r.Delete("/reblog/posts/:id", DeletePost(h))
+
+	r.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Fatalf("Expected %d. Got %d", http.StatusOK, status)
+	}
+
+	expected := string(`{"status" : true, "message" : "Post was deleted", "errors" : {"post_id" : ""}}`)
+
+	assert.JSONEq(t, expected, rr.Body.String())
+
+}
+
+func TestNonExistentPostCannotBeDeleted(t *testing.T) {
+
+	db := new(mocks.DataStore)
+
+	p := models.Post{}
+
+	db.On("FindPostByID", 10).Once().Return(p, errors.New("Post does not exist"))
+
+	db.On("DeletePost", p).Once().Return(nil)
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	req, err := http.NewRequest("DELETE", "/reblog/posts/10", nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	claims := make(map[string]interface{}, 4)
+
+	claims["userID"] = 15
+	claims["moniker"] = "horus"
+	claims["type"] = middleware.ADMIN
+
+	h.JWT.Claims(claims)
+
+	token, err := h.JWT.Generate()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	to, err := h.JWT.Decode(token)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := req.Context()
+
+	ctx = context.WithValue(ctx, "jwt", to)
+
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+
+	r := chi.NewRouter()
+
+	r.Delete("/reblog/posts/:id", DeletePost(h))
+
+	r.ServeHTTP(rr, req)
+
+	if status := rr.Code ; status != http.StatusBadRequest {
+		t.Fatalf("Expected %d. Got %d", http.StatusBadRequest, status)
+	}
+
+	expected := string(`{"status" :false, "message" : "Post does not exist", "errors" : {"post_id" : "Post with the specified id could not be found"}}`)
+
+	assert.JSONEq(t, expected, rr.Body.String())
 }

@@ -57,6 +57,7 @@ func main() {
 			ro.Route("posts", func(roo chi.Router) {
 
 				roo.Post("/create", handler.CreatePost(h))
+				roo.Delete("/:id", handler.DeletePost(h))
 
 			})
 		})

@@ -22,6 +22,20 @@ func (_m *DataStore) CreateCollaborator(email string) error {
 	return r0
 }
 
+// CreatePost provides a mock function with given fields: p, userType
+func (_m *DataStore) CreatePost(p models.Post, userType int) error {
+	ret := _m.Called(p, userType)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(models.Post, int) error); ok {
+		r0 = rf(p, userType)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CreateUser provides a mock function with given fields: u
 func (_m *DataStore) CreateUser(u *models.User) error {
 	ret := _m.Called(u)
@@ -43,6 +57,20 @@ func (_m *DataStore) DeleteCollaborator(c models.Collaborator) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func(models.Collaborator) error); ok {
 		r0 = rf(c)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// DeletePost provides a mock function with given fields: p
+func (_m *DataStore) DeletePost(p models.Post) error {
+	ret := _m.Called(p)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(models.Post) error); ok {
+		r0 = rf(p)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -134,6 +162,69 @@ func (_m *DataStore) FindCollaboratorByToken(token string) (models.Collaborator,
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(token)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindPostByID provides a mock function with given fields: id
+func (_m *DataStore) FindPostByID(id int) (models.Post, error) {
+	ret := _m.Called(id)
+
+	var r0 models.Post
+	if rf, ok := ret.Get(0).(func(int) models.Post); ok {
+		r0 = rf(id)
+	} else {
+		r0 = ret.Get(0).(models.Post)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(int) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindPostBySlug provides a mock function with given fields: slug
+func (_m *DataStore) FindPostBySlug(slug string) (models.Post, error) {
+	ret := _m.Called(slug)
+
+	var r0 models.Post
+	if rf, ok := ret.Get(0).(func(string) models.Post); ok {
+		r0 = rf(slug)
+	} else {
+		r0 = ret.Get(0).(models.Post)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(slug)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindPostByTitle provides a mock function with given fields: title
+func (_m *DataStore) FindPostByTitle(title string) (models.Post, error) {
+	ret := _m.Called(title)
+
+	var r0 models.Post
+	if rf, ok := ret.Get(0).(func(string) models.Post); ok {
+		r0 = rf(title)
+	} else {
+		r0 = ret.Get(0).(models.Post)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(title)
 	} else {
 		r1 = ret.Error(1)
 	}

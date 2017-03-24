@@ -9,6 +9,8 @@ type PostStore interface {
 	CreatePost(p Post, userType int) error
 	FindPostBySlug(slug string) (Post, error)
 	FindPostByTitle(title string) (Post, error)
+	FindPostByID(id int) (Post, error)
+	DeletePost(p Post) error
 }
 
 type Post struct {
@@ -91,4 +93,40 @@ func (db *DB) FindPostByTitle(title string) (Post, error) {
 	}
 
 	return p, nil
+}
+
+func (db *DB) FindPostByID(id int) (Post, error) {
+	var p Post
+
+	stmt, err := db.Preparex("SELECT * FROM posts WHERE id=?")
+
+	if err != nil {
+		return p, errors.Wrap(err, "Could not prepare the statement")
+	}
+
+	err = stmt.QueryRowx(id).StructScan(&p)
+
+	if err != nil {
+		return p, errors.Wrap(err, "Post does not exists")
+	}
+
+	return p, nil
+}
+
+func (db *DB) DeletePost(p Post) error {
+
+	stmt, err := db.Preparex("DELETE FROM posts WHERE id=?")
+
+	if err != nil {
+		return errors.Wrap(err, "Could not prepare statement")
+	}
+
+	r, err := stmt.MustExec(p.ID).RowsAffected()
+
+	if r == 1 && err == nil {
+		return nil
+	}
+
+
+	return errors.Wrap(err, "Post could not be deleted")
 }
