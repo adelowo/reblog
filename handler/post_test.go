@@ -331,7 +331,7 @@ func TestACollaboratorCannotDeleteAPost(t *testing.T) {
 
 	r := chi.NewRouter()
 
-	r.Delete("/reblog/posts/:id", DeletePost(h))
+	r.Handle("/reblog/posts/:id", middleware.Admin(http.HandlerFunc(DeletePost(h))))
 
 	r.ServeHTTP(rr, req)
 
@@ -339,7 +339,7 @@ func TestACollaboratorCannotDeleteAPost(t *testing.T) {
 		t.Fatalf("Expected %d. Got %d", http.StatusUnauthorized, status)
 	}
 
-	expected := string(`{"status" : false, "message" : "You don't have the authority to perform this action", "errors" : {"post_id" : ""}}`)
+	expected := string(`{"status" : false, "message" : "You do not have permission to view this resource"}`) //The admin middleware prevents the real handler from being called since the user is a collaborator.
 
 	assert.JSONEq(t, expected, rr.Body.String())
 }
@@ -456,7 +456,7 @@ func TestNonExistentPostCannotBeDeleted(t *testing.T) {
 
 	r.ServeHTTP(rr, req)
 
-	if status := rr.Code ; status != http.StatusBadRequest {
+	if status := rr.Code; status != http.StatusBadRequest {
 		t.Fatalf("Expected %d. Got %d", http.StatusBadRequest, status)
 	}
 

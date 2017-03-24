@@ -130,25 +130,6 @@ func DeletePost(h *Handler) func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		//Make sure only the admin can delete a post
-
-		userType, err := getUserType(r)
-
-		if err != nil {
-			//This shouldn't happen but...
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		if userType == middleware.COLLABORATOR {
-			w.WriteHeader(http.StatusUnauthorized)
-			render.JSON(w, r, &res{false, "You don't have the authority to perform this action",
-				struct {
-					PostID string `json:"post_id"`
-				}{}})
-			return
-		}
-
 		p, err := h.DB.FindPostByID(id)
 
 		if err != nil {
@@ -171,6 +152,13 @@ func DeletePost(h *Handler) func(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, &res{false, "An error occurred while trying to delete post", struct {
 			PostID string `json:"post_id"`
 		}{}})
+	}
+}
+
+func UnpublishPost(h *Handler) func (w http.ResponseWriter, r *http.Request) {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+
 	}
 }
 
