@@ -120,7 +120,7 @@ func PostSignUp(h *Handler) func(w http.ResponseWriter, r *http.Request) {
 
 	type d struct {
 		Moniker  string `json:"moniker"`
-		Name     string `json:"full_name`
+		Name     string `json:"full_name"`
 		Password string `json:"password"`
 	}
 

@@ -102,7 +102,7 @@ func PostLogin(h *Handler) func(w http.ResponseWriter, r *http.Request) {
 
 			type d struct {
 				Status  bool   `json:"status"`
-				Message string `json:"message`
+				Message string `json:"message"`
 				Data    struct {
 					Token string `json:"token"`
 				} `json:"data"`
