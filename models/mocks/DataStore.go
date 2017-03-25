@@ -231,3 +231,17 @@ func (_m *DataStore) FindPostByTitle(title string) (models.Post, error) {
 
 	return r0, r1
 }
+
+// UnpublishPost provides a mock function with given fields: p
+func (_m *DataStore) UnpublishPost(p models.Post) error {
+	ret := _m.Called(p)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(models.Post) error); ok {
+		r0 = rf(p)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}

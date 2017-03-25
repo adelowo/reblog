@@ -5,12 +5,18 @@ import (
 	"time"
 )
 
+const (
+	UNPUBLISHED = iota
+	PUBLISHED
+)
+
 type PostStore interface {
 	CreatePost(p Post, userType int) error
 	FindPostBySlug(slug string) (Post, error)
 	FindPostByTitle(title string) (Post, error)
 	FindPostByID(id int) (Post, error)
 	DeletePost(p Post) error
+	UnpublishPost(p Post) error
 }
 
 type Post struct {
@@ -127,6 +133,22 @@ func (db *DB) DeletePost(p Post) error {
 		return nil
 	}
 
-
 	return errors.Wrap(err, "Post could not be deleted")
+}
+
+func (db *DB) UnpublishPost(p Post) error {
+
+	stmt, err := db.Preparex("UPDATE posts SET status=? WHERE id=?")
+
+	if err != nil {
+		return errors.Wrap(err, "Could not prepare statement")
+	}
+
+	r, err := stmt.MustExec(PUBLISHED).RowsAffected()
+
+	if err == nil && r == 1 {
+		return nil
+	}
+
+	return errors.Wrap(err, "Could not update post")
 }

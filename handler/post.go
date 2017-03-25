@@ -155,10 +155,51 @@ func DeletePost(h *Handler) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func UnpublishPost(h *Handler) func (w http.ResponseWriter, r *http.Request) {
+func UnpublishPost(h *Handler) func(w http.ResponseWriter, r *http.Request) {
+
+	type res struct {
+		Status  bool   `json:"status"`
+		Message string `json:"message"`
+		Errors  struct {
+			PostID string `json:"post_id"`
+		} `json:"errors"`
+	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			render.JSON(w, r, &res{false, "Invalid request", struct {
+				PostID string `json:"post_id"`
+			}{"Please provide the post id"}})
+
+			return
+		}
+
+		p, err := h.DB.FindPostByID(id)
+
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			render.JSON(w, r, &res{false, "Post does not exist", struct {
+				PostID string `json:"post_id"`
+			}{"Post with the specified id does not exist"}})
+			return
+		}
+
+		if err = h.DB.UnpublishPost(p); err == nil {
+			w.WriteHeader(http.StatusOK)
+			render.JSON(w, r, &res{true, "Post was updated", struct {
+				PostID string `json:"post_id"`
+			}{}})
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		render.JSON(w, r, &res{false, "An error occurred while trying to unpublish the post", struct {
+			PostID string `json:"post_id"`
+		}{"Post could not be unpublished"}})
 	}
 }
 

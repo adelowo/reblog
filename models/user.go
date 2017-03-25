@@ -114,7 +114,7 @@ func (db *DB) CreateUser(u *User) error {
 		return nil
 	}
 
-	now := time.Now().UTC()
+	now := time.Now()
 
 	stmt, err := db.Preparex("INSERT INTO users(moniker,full_name,password,email,created_at,updated_at) VALUES(?,?,?,?,?,?)")
 

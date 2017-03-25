@@ -464,3 +464,230 @@ func TestNonExistentPostCannotBeDeleted(t *testing.T) {
 
 	assert.JSONEq(t, expected, rr.Body.String())
 }
+
+func TestAdminOnlyCanMarkAPostAsUnpublished(t *testing.T) {
+
+	req, err := http.NewRequest("PUT", "/reblog/posts/10", nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	h := &Handler{DB: new(mocks.DataStore), JWT: utils.NewJWTGenerator()}
+
+	claims := make(map[string]interface{}, 4)
+
+	claims["userID"] = 15
+	claims["moniker"] = "horus"
+	claims["type"] = middleware.COLLABORATOR
+
+	h.JWT.Claims(claims)
+
+	token, err := h.JWT.Generate()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	to, err := h.JWT.Decode(token)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := req.Context()
+
+	ctx = context.WithValue(ctx, "jwt", to)
+
+	req = req.WithContext(ctx)
+
+	middleware.Admin(http.HandlerFunc(UnpublishPost(h))).
+		ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusUnauthorized {
+		t.Fatalf("Expected %d. Got %d", http.StatusUnauthorized, status)
+	}
+
+	expected := string(`{"status" : false, "message" : "You do not have permission to view this resource"}`)
+
+	assert.JSONEq(t, expected, rr.Body.String())
+}
+
+func TestAdminCanMarkAPostAsUnpublished(t *testing.T) {
+
+	req, err := http.NewRequest("PUT", "/reblog/posts/80", nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	db := new(mocks.DataStore)
+
+	p := models.Post{ID: 80}
+
+	db.On("FindPostByID", 80).Once().Return(p, nil)
+
+	db.On("UnpublishPost", p).Once().Return(nil)
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	claims := make(map[string]interface{}, 4)
+
+	claims["userID"] = 15
+	claims["moniker"] = "horus"
+	claims["type"] = middleware.ADMIN
+
+	h.JWT.Claims(claims)
+
+	token, err := h.JWT.Generate()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	to, err := h.JWT.Decode(token)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := req.Context()
+
+	ctx = context.WithValue(ctx, "jwt", to)
+
+	req = req.WithContext(ctx)
+
+	r := chi.NewRouter()
+
+	r.Handle("/reblog/posts/:id", middleware.Admin(http.HandlerFunc(UnpublishPost(h))))
+
+	r.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Fatalf("Expected %d. Got %d", http.StatusOK, status)
+	}
+
+	expected := string(`{"status":true,"message":"Post was updated","errors":{"post_id":""}}`)
+
+	assert.JSONEq(t, expected, rr.Body.String())
+}
+
+func TestCannotDeleteNonExistentPost(t *testing.T) {
+
+	req, err := http.NewRequest("PUT", "/reblog/posts/80", nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	db := new(mocks.DataStore)
+
+	db.On("FindPostByID", 80).Once().Return(models.Post{}, errors.New("Post does not exist"))
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	claims := make(map[string]interface{}, 4)
+
+	claims["userID"] = 15
+	claims["moniker"] = "horus"
+	claims["type"] = middleware.ADMIN
+
+	h.JWT.Claims(claims)
+
+	token, err := h.JWT.Generate()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	to, err := h.JWT.Decode(token)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := req.Context()
+
+	ctx = context.WithValue(ctx, "jwt", to)
+
+	req = req.WithContext(ctx)
+
+	r := chi.NewRouter()
+
+	r.Handle("/reblog/posts/:id", middleware.Admin(http.HandlerFunc(UnpublishPost(h))))
+
+	r.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusNotFound {
+		t.Fatalf("Expected %d. Got %d", http.StatusNotFound, status)
+	}
+
+	expected := string(`{"status":false,"message":"Post does not exist","errors":{"post_id":"Post with the specified id does not exist"}}`)
+
+	assert.JSONEq(t, expected, rr.Body.String())
+
+}
+
+func TestAnErrorOccurredWhileTryingToUnpublishPost(t *testing.T) {
+
+	req, err := http.NewRequest("PUT", "/reblog/posts/80", nil)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+
+	p := models.Post{ID: 80}
+
+	db := new(mocks.DataStore)
+
+	db.On("FindPostByID", 80).Once().Return(p, nil)
+
+	db.On("UnpublishPost", p).Once().Return(errors.New("Could not unpublish Post"))
+
+	h := &Handler{DB: db, JWT: utils.NewJWTGenerator()}
+
+	claims := make(map[string]interface{}, 4)
+
+	claims["userID"] = 15
+	claims["moniker"] = "horus"
+	claims["type"] = middleware.ADMIN
+
+	h.JWT.Claims(claims)
+
+	token, err := h.JWT.Generate()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	to, err := h.JWT.Decode(token)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := req.Context()
+
+	ctx = context.WithValue(ctx, "jwt", to)
+
+	req = req.WithContext(ctx)
+
+	r := chi.NewRouter()
+
+	r.Handle("/reblog/posts/:id", middleware.Admin(http.HandlerFunc(UnpublishPost(h))))
+
+	r.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusInternalServerError {
+		t.Fatalf("Expected %d. Got %d", http.StatusInternalServerError, status)
+	}
+
+	expected := string(`{"status":false,"message":"An error occurred while trying to unpublish the post","errors":{"post_id":"Post could not be unpublished"}}`)
+
+	assert.JSONEq(t, expected, rr.Body.String())
+
+}
