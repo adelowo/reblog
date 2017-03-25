@@ -226,7 +226,7 @@ func TestCannotSignUserUpWithInvalidData(t *testing.T) {
 
 func TestCollaboratorIsSuccessfullyCreated(t *testing.T) {
 
-	data := []byte(`{"name" : "Lanre Adelowo", "moniker" : "hades", "password" : "yetanotherbadpassword"}`)
+	data := []byte(`{"full_name" : "Lanre Adelowo", "moniker" : "hades", "password" : "yetanotherbadpassword"}`)
 
 	db := new(mocks.DataStore)
 
@@ -271,7 +271,7 @@ func TestCollaboratorIsSuccessfullyCreated(t *testing.T) {
 
 func TestAnUnknownErrorOccurredWhileCollaboratorTriedSigningUp(t *testing.T) {
 
-	data := []byte(`{"name" : "Lanre Adelowo", "moniker" : "hades", "password" : "yetanotherbadpassword"}`)
+	data := []byte(`{"full_name" : "Lanre Adelowo", "moniker" : "hades", "password" : "yetanotherbadpassword"}`)
 
 	db := new(mocks.DataStore)
 
