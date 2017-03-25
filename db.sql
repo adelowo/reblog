@@ -36,3 +36,4 @@ CREATE TABLE posts
 );
 
 CREATE UNIQUE INDEX posts_slug_uindex ON posts (slug);
+CREATE UNIQUE INDEX posts_title_uindex ON posts(title);

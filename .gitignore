@@ -1,2 +1,4 @@
 runner.conf
 reblog.db
+tmp/
+reblog
