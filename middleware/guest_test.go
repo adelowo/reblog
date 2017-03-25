@@ -2,17 +2,12 @@ package middleware
 
 import (
 	"bytes"
-	"github.com/adelowo/reblog/handler"
-	"github.com/adelowo/reblog/models/mocks"
-	"github.com/adelowo/reblog/utils"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
 func TestGuest(t *testing.T) {
-	db := &mocks.DataStore{}
-	h := &handler.Handler{DB: db, JWT: utils.NewJWTGenerator()}
 
 	req, err := http.NewRequest("POST", "/login", nil)
 	req.Header.Add("Authorization", "Bearer abc123")
@@ -23,7 +18,10 @@ func TestGuest(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	Guest(http.HandlerFunc(handler.PostLogin(h))).
+	Guest(http.HandlerFunc(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("You have been pawned"))
+	}))).
 		ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusUnauthorized {

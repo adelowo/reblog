@@ -2,9 +2,7 @@ package middleware
 
 import (
 	"bytes"
-	"github.com/adelowo/reblog/handler"
 	"github.com/adelowo/reblog/models"
-	"github.com/adelowo/reblog/models/mocks"
 	"github.com/adelowo/reblog/utils"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -13,11 +11,9 @@ import (
 )
 
 func TestAdmin(t *testing.T) {
-	db := &mocks.DataStore{}
+	JWT := utils.NewJWTGenerator()
 
 	user := models.User{ID: 1, Moniker: "hades", Type: 1}
-
-	h := &handler.Handler{DB: db, JWT: utils.NewJWTGenerator()}
 
 	claims := make(map[string]interface{}, 4)
 
@@ -25,9 +21,9 @@ func TestAdmin(t *testing.T) {
 	claims["moniker"] = user.Moniker
 	claims["type"] = user.Type
 
-	h.JWT.Claims(claims)
+	JWT.Claims(claims)
 
-	token, err := h.JWT.Generate()
+	token, err := JWT.Generate()
 
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +39,7 @@ func TestAdmin(t *testing.T) {
 
 	rr := httptest.NewRecorder()
 
-	h.JWT.Verifier(Admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	JWT.Verifier(Admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Created a new user"))
 	}))).
@@ -59,10 +55,10 @@ func TestAdmin(t *testing.T) {
 		t.Log("Response body were the same")
 	}
 
-	testPreventsCollaboratorsFromAccessingThisEndpoint(h, t)
+	testPreventsCollaboratorsFromAccessingThisEndpoint(JWT, t)
 }
 
-func testPreventsCollaboratorsFromAccessingThisEndpoint(h *handler.Handler, t *testing.T) {
+func testPreventsCollaboratorsFromAccessingThisEndpoint(JWT *utils.JWTTokenGenerator, t *testing.T) {
 	user := models.User{ID: 4, Moniker: "alcheme", Type: 0}
 
 	claims := make(map[string]interface{}, 4)
@@ -71,9 +67,9 @@ func testPreventsCollaboratorsFromAccessingThisEndpoint(h *handler.Handler, t *t
 	claims["moniker"] = user.Moniker
 	claims["type"] = user.Type
 
-	h.JWT.Claims(claims)
+	JWT.Claims(claims)
 
-	token, err := h.JWT.Generate()
+	token, err := JWT.Generate()
 
 	if err != nil {
 		t.Fatal(err)
@@ -89,7 +85,7 @@ func testPreventsCollaboratorsFromAccessingThisEndpoint(h *handler.Handler, t *t
 
 	rr := httptest.NewRecorder()
 
-	h.JWT.Verifier(Admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	JWT.Verifier(Admin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Created a new user"))
 	}))).
