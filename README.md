@@ -1,5 +1,7 @@
 ### Reblog - Some simple blog API built in Go
 
+> I built this in other to learn more about testing handlers in Go. This project isn't suitable for production or anything of that sort.
+
 Features 
 
 - [x] User authentication via JWT
